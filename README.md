@@ -1,4 +1,4 @@
-# ForceMomentHX711 Library
+# ThrustTorqueHX711 Library
 
 This library is designed for propeller electric motor thrust and torque measurement stand.  
 
