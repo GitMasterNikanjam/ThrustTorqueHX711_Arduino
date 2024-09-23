@@ -1,7 +1,7 @@
-#include "ForceMomentHX711.h"
+#include "ThrustTorqueHX711.h"
 
 
-ForceMomentHX711 ThrustTorqueUnit;
+ThrustTorqueHX711 thrustTorqueUnit;
 
 void setup() {
   // put your setup code here, to run once:

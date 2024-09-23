@@ -1,6 +1,21 @@
 
-#include "ForceMomentHX711.h"
+#include "ThrustTorqueHX711.h"
 
+ThrustTorqueHX711::ThrustTorqueHX711()
+{
+
+}
+
+ThrustTorqueHX711::~ThrustTorqueHX711()
+{
+  
+}
+
+bool ThrustTorqueHX711::init(void)
+{
+  thrustLoadcell = new HX711_ADC(1,2);
+  torqueLoadcell = new HX711_ADC(1,2);
+}
 
 //  void thrust_calculate(void)
 //   {
