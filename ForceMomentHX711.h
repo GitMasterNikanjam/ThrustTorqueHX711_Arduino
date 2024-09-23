@@ -8,40 +8,46 @@ class ForceMomentHX711
 {
   public:
 
+    // Last error accured for object.
     String errorMessage;
 
+    // Parameters structure
     struct ParametersStruct
     {
-      #define TORQUE_FACTOR             0.195       // [m]. Proportional gain for transfer thrust force [N] to torque moment [N.m]. The distance of loadcell point force and center of motor mount.
-      #define LOADCELL_SAMPLE_USE       3           // Number of Sample of loadcell for Moving average filter
-      #define LOADCELL_THRUST_SCALE     105.35108   // Loadcell Measurement scale @5.1 volt   // 3.19, 105.35108
-      #define LOADCELL_TORQUE_SCALE     218.3545    // Loadcell Measurement scale @5.1 volt    // 3.3*2, 218.3545
-      #define TARE_TIME                 3000        // tare time duration in [ms]
-      #define TARE_FLAG                 false       // flag for enable/disable zero loadcell offset at initialization. 
-      #define GRAVITY                   9.798       // Gravity of the earth. [Approximately in tehran]
+      float MOMENT_FACTOR;          // [m]. Proportional gain for transfer thrust force [N] to torque moment [N.m]. The distance of loadcell point force and center of motor mount.
+      uint8_t SAMPLE_USE;           // Number of Sample of loadcell for Moving average filter
+      float THRUST_SCALE;           // Loadcell Measurement scale @5.1 volt   // 3.19, 105.35108
+      float MOMENT_SCALE;           // Loadcell Measurement scale @5.1 volt    // 3.3*2, 218.3545
+      uint16_t TARE_TIME;           // tare time duration in [ms]
+      bool TARE_FLAG;               // flag for enable/disable zero loadcell offset at initialization. 
+      float GRAVITY;                // Gravity of the earth. [Approximately in tehran]
+
+      uint8_t THRUST_DOUT;          //mcu > HX711 dout pin
+      uint8_t THRUST_SCK;           //mcu > HX711 sck pin
+      uint8_t MOMENT_DOUT;          //mcu > HX711 dout pin
+      uint8_t MOMENT_SCK;           //mcu > HX711 sck pin
     }parameters;
 
-    // Loadcells:
-    // Loadcell HX711 Module pins:
-    #define HX711_DOUT_1                  33           //mcu > HX711 dout pin
-    #define HX711_SCK_1                   35           //mcu > HX711 sck pin
-
-    #define HX711_DOUT_2                  27           //mcu > HX711 dout pin
-    #define HX711_SCK_2                   29           //mcu > HX711 sck pin
-
-    #define HX711_DOUT_3                  23           //mcu > HX711 dout pin
-    #define HX711_SCK_3                   25           //mcu > HX711 sck pin
-
+    // Value structure
     struct ValueStruct
     {
-
+      int32_t rawThrust;                            // loadcell force. [gr]
+      int32_t rawMoment;
+      float thrust;                                // Thrust and Torque calculated from loadcells. [gr],[N.m]
+      float moment;
     }value;
 
-    float loadcell_force[2];                            // loadcell force. [gr]
-    float thrust,torque;                                // Thrust and Torque calculated from loadcells. [gr],[N.m]
+    HX711_ADC thrustLoadcell;    // HX711 Object for loadcell_1
+    HX711_ADC momentLoadcell;    // HX711 Object for loadcell_2
 
+    /**
+     * Constructor.
+     */
     ForceMomentHX711();
 
+    /**
+     * Destructor.
+     */
     ~ForceMomentHX711();
 
     bool init(void);
