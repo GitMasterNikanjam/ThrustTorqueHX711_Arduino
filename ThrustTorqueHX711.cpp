@@ -3,7 +3,27 @@
 
 ThrustTorqueHX711::ThrustTorqueHX711()
 {
+  parameters.THRUST_DOUT_PIN = -1;
+  parameters.THRUST_SCK_PIN = -1;
+  parameters.TORQUE_DOUT_PIN = -1;
+  parameters.TORQUE_SCK_PIN = -1;
+  parameters.TORQUE_ARM = 0.15;
+  parameters.TORQUE_SCALE = 1;
+  parameters.THRUST_SCALE = 1;
+  parameters.GRAVITY = 9.81;
+  parameters.SAMPLE_USE = 3;
+  parameters.TARE_FLAG = false;
+  parameters.TARE_TIME = 3000;
+  
+  value.thrust = 0;
+  value.torque = 0;
+  value.torqueForce = 0;
 
+  thrustLoadcell = nullptr;
+  torqueLoadcell = nullptr;
+
+  _thrustDefinedFlag = false;
+  _torqueDefinedFlag = false;
 }
 
 ThrustTorqueHX711::~ThrustTorqueHX711()
@@ -11,58 +31,108 @@ ThrustTorqueHX711::~ThrustTorqueHX711()
   
 }
 
-bool ThrustTorqueHX711::init(void)
+bool ThrustTorqueHX711::setThrustHX711Pins(int8_t dout_pin, int8_t sck_pin)
 {
-  thrustLoadcell = new HX711_ADC(1,2);
-  torqueLoadcell = new HX711_ADC(1,2);
+  if( (dout_pin < 0) || (sck_pin < 0) )
+  {
+    errorMessage = "Error ThrustTorqueHX711: Dout and Sck pins for thrust loadcell is not correct value.";
+    return false;
+  }
+
+  parameters.THRUST_DOUT_PIN = dout_pin;
+  parameters.THRUST_SCK_PIN = sck_pin;
+
+  return true;
 }
 
-//  void thrust_calculate(void)
-//   {
-//   thrust = abs(loadcell_force[0]);    // [gr]
-//   }
+bool ThrustTorqueHX711::setTorqueHX711Pins(int8_t dout_pin, int8_t sck_pin)
+{
+  if( (dout_pin < 0) || (sck_pin < 0) )
+  {
+    errorMessage = "Error ThrustTorqueHX711: Dout and Sck pins for torque loadcell is not correct value.";
+    return false;
+  }
 
-//   // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  parameters.TORQUE_DOUT_PIN = dout_pin;
+  parameters.TORQUE_SCK_PIN = sck_pin;
+  
+  return true;
+}
 
-//   void torque_calculate(void)
-//   {
-//   torque = (abs(loadcell_force[1])) * TORQUE_FACTOR * GRAVITY/1000.0;  // N.m
-//   }
+bool ThrustTorqueHX711::init(void)
+{
+  if(!_checkParameters())
+  {
+    return false;
+  }
 
-//   // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//   void loadcells_read(void)
-//   {
-//   if(LOADCELL_1.update())                                //if conversion is ready; read out 24 bit data and add to dataset
-//   loadcell_force[0] = LOADCELL_1.getData();              //returns data from the moving average dataset 
-//   if(LOADCELL_2.update())
-//   loadcell_force[1] = LOADCELL_2.getData();
-//   }
+  if( (parameters.THRUST_DOUT_PIN >= 0) || (parameters.THRUST_SCK_PIN >= 0) )
+  {
+    thrustLoadcell = new HX711_ADC(parameters.THRUST_DOUT_PIN, parameters.THRUST_SCK_PIN);
+    thrustLoadcell->setCalFactor(parameters.THRUST_SCALE);
+    thrustLoadcell->setSamplesInUse(parameters.SAMPLE_USE);      //overide number of samples in use for smoothing data output.
+    thrustLoadcell->begin();   //set pinMode, HX711 gain and power up the HX711
+    thrustLoadcell->start(parameters.TARE_TIME, parameters.TARE_FLAG);   //start HX711, do tare if selected
+    _thrustDefinedFlag = true;
 
-//   // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  }
 
-//   void loadcells_calibrate(void)
-//   {
-//     delay(2000);
-//     LOADCELL_1.tareNoDelay();
-//     LOADCELL_2.tareNoDelay();
-//   }
+  if( (parameters.TORQUE_DOUT_PIN >= 0) || (parameters.TORQUE_SCK_PIN >= 0) )
+  {
+    torqueLoadcell = new HX711_ADC(parameters.TORQUE_DOUT_PIN, parameters.TORQUE_SCK_PIN);
+    torqueLoadcell->setCalFactor(parameters.TORQUE_SCALE);
+    torqueLoadcell->setSamplesInUse(parameters.SAMPLE_USE);
+    torqueLoadcell->begin();
+    torqueLoadcell->start(parameters.TARE_TIME, parameters.TARE_FLAG);
+    _torqueDefinedFlag = true;
+  }
 
-//   // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+  delay(1000);
 
-//   void init_loadcells(void)
-//   {
-//     LOADCELL_1.begin();   //set pinMode, HX711 gain and power up the HX711
-//     LOADCELL_2.begin();
-    
-//     LOADCELL_1.start(TARE_TIME, TARE_FLAG);   //start HX711, do tare if selected
-//     LOADCELL_2.start(TARE_TIME, TARE_FLAG);
+  if(_thrustDefinedFlag)
+  {
+    thrustLoadcell->tareNoDelay();      // zero offset
+  }
+  
+  if(_torqueDefinedFlag)
+  {
+    torqueLoadcell->tareNoDelay();      // zero offset
+  }
+  
+  return true;
+}
 
-//     LOADCELL_1.setCalFactor(LOADCELL_THRUST_SCALE);
-//     LOADCELL_2.setCalFactor(LOADCELL_TORQUE_SCALE);
-    
-//     LOADCELL_1.setSamplesInUse(LOADCELL_SAMPLE_USE);      //overide number of samples in use for smoothing data output.
-//     LOADCELL_2.setSamplesInUse(LOADCELL_SAMPLE_USE);
+bool ThrustTorqueHX711::_checkParameters(void)
+{
+  bool state = (parameters.THRUST_SCALE > 0) && (parameters.TORQUE_SCALE > 0) && (parameters.TORQUE_ARM >= 0) && (parameters.GRAVITY >= 0);
 
-//     loadcells_calibrate(); // zero offset
+  if(state == false)
+  {
+    errorMessage = "Error ThrustTorqueHX711: one or some parameters is not correct value.";
+    return false;
+  }
 
-//   }
+  return true;
+}
+
+void ThrustTorqueHX711::update(void)
+{
+  //if conversion is ready; read out 24 bit data and add to dataset
+  if(thrustLoadcell->update())     
+  {
+    value.thrust = thrustLoadcell->getData();              //returns data from the moving average dataset 
+  }  
+
+  if(torqueLoadcell->update())
+  {
+    value.torqueForce = torqueLoadcell->getData();
+    value.torque = value.torqueForce * (parameters.GRAVITY / 1000.0) * parameters.TORQUE_ARM;
+  }
+}
+
+void ThrustTorqueHX711::calibrate(void)
+{
+  delay(2000);
+  thrustLoadcell->tareNoDelay();
+  torqueLoadcell->tareNoDelay();
+}
