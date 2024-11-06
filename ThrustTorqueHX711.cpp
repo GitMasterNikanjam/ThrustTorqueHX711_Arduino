@@ -19,16 +19,11 @@ ThrustTorqueHX711::ThrustTorqueHX711()
   value.torque = 0;
   value.torqueForce = 0;
 
-  thrustLoadcell = nullptr;
-  torqueLoadcell = nullptr;
+  _thrustLoadcell = nullptr;
+  _torqueLoadcell = nullptr;
 
   _thrustDefinedFlag = false;
   _torqueDefinedFlag = false;
-}
-
-ThrustTorqueHX711::~ThrustTorqueHX711()
-{
-  
 }
 
 bool ThrustTorqueHX711::setThrustHX711Pins(int8_t dout_pin, int8_t sck_pin)
@@ -66,45 +61,38 @@ bool ThrustTorqueHX711::init(void)
     return false;
   }
 
-  if( (parameters.THRUST_DOUT_PIN >= 0) || (parameters.THRUST_SCK_PIN >= 0) )
-  {
-    thrustLoadcell = new HX711_ADC(parameters.THRUST_DOUT_PIN, parameters.THRUST_SCK_PIN);
-    thrustLoadcell->setCalFactor(parameters.THRUST_SCALE);
-    thrustLoadcell->setSamplesInUse(parameters.SAMPLE_USE);      //overide number of samples in use for smoothing data output.
-    thrustLoadcell->begin();   //set pinMode, HX711 gain and power up the HX711
-    thrustLoadcell->start(parameters.TARE_TIME, parameters.TARE_FLAG);   //start HX711, do tare if selected
-    _thrustDefinedFlag = true;
+  _thrustLoadcell = new HX711_ADC(parameters.THRUST_DOUT_PIN, parameters.THRUST_SCK_PIN);
+  _thrustLoadcell->setCalFactor(parameters.THRUST_SCALE);
+  _thrustLoadcell->setSamplesInUse(parameters.SAMPLE_USE);      //overide number of samples in use for smoothing data output.
+  _thrustLoadcell->begin();   //set pinMode, HX711 gain and power up the HX711
+  _thrustLoadcell->start(parameters.TARE_TIME, parameters.TARE_FLAG);   //start HX711, do tare if selected
+  _thrustDefinedFlag = true;
 
-  }
-
-  if( (parameters.TORQUE_DOUT_PIN >= 0) || (parameters.TORQUE_SCK_PIN >= 0) )
-  {
-    torqueLoadcell = new HX711_ADC(parameters.TORQUE_DOUT_PIN, parameters.TORQUE_SCK_PIN);
-    torqueLoadcell->setCalFactor(parameters.TORQUE_SCALE);
-    torqueLoadcell->setSamplesInUse(parameters.SAMPLE_USE);
-    torqueLoadcell->begin();
-    torqueLoadcell->start(parameters.TARE_TIME, parameters.TARE_FLAG);
-    _torqueDefinedFlag = true;
-  }
+  _torqueLoadcell = new HX711_ADC(parameters.TORQUE_DOUT_PIN, parameters.TORQUE_SCK_PIN);
+  _torqueLoadcell->setCalFactor(parameters.TORQUE_SCALE);
+  _torqueLoadcell->setSamplesInUse(parameters.SAMPLE_USE);
+  _torqueLoadcell->begin();
+  _torqueLoadcell->start(parameters.TARE_TIME, parameters.TARE_FLAG);
+  _torqueDefinedFlag = true;
 
   delay(1000);
 
-  if(_thrustDefinedFlag)
-  {
-    thrustLoadcell->tareNoDelay();      // zero offset
-  }
-  
-  if(_torqueDefinedFlag)
-  {
-    torqueLoadcell->tareNoDelay();      // zero offset
-  }
+  _thrustLoadcell->tareNoDelay();      // zero offset
+  _torqueLoadcell->tareNoDelay();      // zero offset
   
   return true;
 }
 
 bool ThrustTorqueHX711::_checkParameters(void)
 {
-  bool state = (parameters.THRUST_SCALE > 0) && (parameters.TORQUE_SCALE > 0) && (parameters.TORQUE_ARM >= 0) && (parameters.GRAVITY >= 0);
+  bool state = (parameters.THRUST_SCALE > 0) && 
+               (parameters.TORQUE_SCALE > 0) && 
+              (parameters.TORQUE_ARM >= 0) && 
+              (parameters.GRAVITY >= 0) &&
+              (parameters.TORQUE_DOUT_PIN >= 0) &&
+              (parameters.TORQUE_SCK_PIN >= 0) &&
+              (parameters.THRUST_DOUT_PIN >= 0) &&
+              (parameters.THRUST_SCK_PIN >= 0);
 
   if(state == false)
   {
@@ -118,14 +106,14 @@ bool ThrustTorqueHX711::_checkParameters(void)
 void ThrustTorqueHX711::update(void)
 {
   //if conversion is ready; read out 24 bit data and add to dataset
-  if(thrustLoadcell->update())     
+  if(_thrustLoadcell->update())     
   {
-    value.thrust = thrustLoadcell->getData();              //returns data from the moving average dataset 
+    value.thrust = _thrustLoadcell->getData();              //returns data from the moving average dataset 
   }  
 
-  if(torqueLoadcell->update())
+  if(_torqueLoadcell->update())
   {
-    value.torqueForce = torqueLoadcell->getData();
+    value.torqueForce = _torqueLoadcell->getData();
     value.torque = value.torqueForce * (parameters.GRAVITY / 1000.0) * parameters.TORQUE_ARM;
   }
 }
@@ -133,6 +121,6 @@ void ThrustTorqueHX711::update(void)
 void ThrustTorqueHX711::calibrate(void)
 {
   delay(2000);
-  thrustLoadcell->tareNoDelay();
-  torqueLoadcell->tareNoDelay();
+  _thrustLoadcell->tareNoDelay();
+  _torqueLoadcell->tareNoDelay();
 }

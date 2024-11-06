@@ -1,14 +1,16 @@
-# ThrustTorqueHX711 Library
+# <ThrustTorqueHX711.h> Library
 
-This library is designed for propeller electric motor thrust and torque measurement stand.  
+- This library is designed for a propeller electric motor thrust and torque measurement stand.      
+- This library used "olkal/HX711_ADC" library to loadcell measurements.     
+- One load cell is used for thrust measurement, and one load cell is used for torque measurement.   
+- Each load cell is connected to an HX711 24-bit ADC.    
 
-## Specifications
+## Public Member Functions
 
-- One loadcell is used for thrust measurement and one loadcell is used for torque measurement.   
-- Each loadcell connect to a HX711 24 bit ADC.   
-- This library use <HX711_ADC.h> library for HX711.   
 
--------------------------------------------------------------
+## Public Member Variables
+
+---------------------------------------------------------------------------------------------------------------
 
 ## <HX711_ADC.h> Library Guideline
 
